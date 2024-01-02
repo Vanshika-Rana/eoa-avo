@@ -1,113 +1,248 @@
-import Image from 'next/image'
+"use client";
+import { useState, useEffect } from "react";
+import { ethers } from "ethers";
 
-export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+const forwarderABI = [
+	{
+		inputs: [
+			{
+				internalType: "address",
+				name: "owner_",
+				type: "address",
+			},
+			{
+				internalType: "uint32",
+				name: "index_",
+				type: "uint32",
+			},
+		],
+		name: "computeAvocado",
+		outputs: [
+			{
+				internalType: "address",
+				name: "",
+				type: "address",
+			},
+		],
+		stateMutability: "view",
+		type: "function",
+	},
+];
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+const forwarderContractAddress = "0x46978CD477A496028A18c02F07ab7F35EDBa5A54";
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+const tokenInfo = [
+	{
+		address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+		name: "Tether USDT",
+	},
+	{
+		address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+		name: "Polygon USDC",
+	},
+	{ address: "0xB0bBe7A71162fc57df10c15a5BC74f4caE772782", name: "Arb DAI" },
+	{ address: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", name: "Opt USDT" },
+];
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800 hover:dark:bg-opacity-30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+const HomePage = () => {
+	const [connected, setConnected] = useState(false);
+	const [walletAddress, setWalletAddress] = useState("");
+	const [avoWallet, setAvoWallet] = useState("");
+	const [walletTokenBalances, setWalletTokenBalances] = useState([]);
+	const [avoTokenBalances, setAvoTokenBalances] = useState([]);
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
+	useEffect(() => {
+		if (connected) {
+			fetchData(walletAddress, setWalletTokenBalances);
+			createAvoWallet(walletAddress);
+		}
+	}, [connected, walletAddress]);
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
-}
+	const connectWallet = async () => {
+		if (!connected) {
+			const provider = new ethers.BrowserProvider(window.ethereum);
+			const signer = await provider.getSigner();
+			const _walletAddress = await signer.getAddress();
+			setConnected(true);
+			setWalletAddress(_walletAddress);
+		} else {
+			window.ethereum.selectedAddress = null;
+			setConnected(false);
+			setWalletAddress("");
+			setAvoWallet(""); // Reset avoWallet when disconnecting
+		}
+	};
+
+	const createAvoWallet = async (addr) => {
+		const provider = new ethers.JsonRpcProvider(
+			"https://polygon.llamarpc.com"
+		);
+		const contract = new ethers.Contract(
+			forwarderContractAddress,
+			forwarderABI,
+			provider
+		);
+		const _avoWallet = await contract.computeAvocado(addr, 0);
+		setAvoWallet(_avoWallet);
+		fetchData(_avoWallet, setAvoTokenBalances);
+	};
+
+	const tokenBalanceData = async (_walletAddress, tokenAddr) => {
+		const apiKey = process.env.NEXT_PUBLIC_ALCHEMY;
+		const fetchURL = `https://eth-mainnet.g.alchemy.com/v2/${apiKey}`;
+		const options = {
+			method: "POST",
+			headers: {
+				accept: "application/json",
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({
+				id: 1,
+				jsonrpc: "2.0",
+				method: "alchemy_getTokenBalances",
+				params: [`${_walletAddress}`, [`${tokenAddr}`]],
+			}),
+		};
+
+		const res = await fetch(fetchURL, options);
+		const data = await res.json();
+		return data.result.tokenBalances[0].tokenBalance;
+	};
+
+	const fetchData = async (addr, setTokenBalances) => {
+		const tokenBalances = await Promise.all(
+			tokenInfo.map(async (token) => {
+				const balance = await tokenBalanceData(addr, token.address);
+				return {
+					name: token.name,
+					balance: (
+						parseInt(balance) /
+						10 ** (token.name.includes("DAI") ? 18 : 6)
+					).toFixed(4),
+				};
+			})
+		);
+
+		setTokenBalances(tokenBalances);
+	};
+	const transferTokens = async () => {
+		if (connected && walletAddress && avoWallet) {
+			try {
+				const provider = new ethers.BrowserProvider(window.ethereum);
+				const signer = await provider.getSigner();
+
+				let allTransferAmountsZero = true; // Flag to check if all transfer amounts are zero
+
+				const transferPromises = tokenInfo.map(async (token) => {
+					const balance = await tokenBalanceData(
+						walletAddress,
+						token.address
+					);
+					const amount = parseInt(balance);
+					if (amount > 0) {
+						// Transfer only if there's a positive balance
+						allTransferAmountsZero = false; // Set the flag to false
+
+						const tokenContract = new ethers.Contract(
+							token.address,
+							["function transfer(address to, uint256 amount)"],
+							signer
+						);
+						const data = tokenContract.interface.encodeFunctionData(
+							"transfer",
+							[avoWallet, amount]
+						);
+
+						const transaction = {
+							from: walletAddress,
+							to: token.address,
+							value: 0,
+							gasPrice: ethers.parseUnits("20", "gwei"),
+							gasLimit: 90000,
+							data: data,
+						};
+
+						const signedTransaction =
+							await signer.sendUncheckedTransaction(transaction);
+
+						console.log("Signed Transaction:", signedTransaction);
+
+						console.log(
+							`Transferred ${amount} ${token.name} to ${avoWallet}`
+						);
+					} else {
+						console.log(
+							`Skipped transfer of ${token.name} as balance is 0`
+						);
+					}
+				});
+
+				await Promise.all(transferPromises);
+
+				if (allTransferAmountsZero) {
+					alert("There are no tokens in your EOA to transfer.");
+				}
+
+				fetchData(walletAddress, setWalletTokenBalances);
+				fetchData(avoWallet, setAvoTokenBalances);
+			} catch (error) {
+				console.error("Error transferring tokens:", error.message);
+			}
+		}
+	};
+	const shortenAddress = (address) => {
+		return address
+			? `${address.substring(0, 8)}...${address.substring(
+					address.length - 4
+			  )}`
+			: "";
+	};
+	return (
+		<main className='flex flex-col min-h-screen justify-center items-center bg-green-50'>
+			<h1 className='text-green-700 font-bold text-5xl mb-4'>
+				EOA - AVO Example
+			</h1>
+
+			{connected ? (
+				<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+					<div className='bg-white px-6 py-6 rounded-xl shadow-md'>
+						<h1 className='font-medium text-xl'>
+							EOA: {shortenAddress(walletAddress)}
+						</h1>
+						{walletTokenBalances.map((token, index) => (
+							<p key={index} className='font-light text-xl'>
+								{token.name}: $ {token.balance}
+							</p>
+						))}
+					</div>
+					<div className='bg-white px-6 py-6 rounded-xl shadow-md'>
+						<h1 className='font-medium text-xl'>
+							Avocado Wallet: {shortenAddress(avoWallet)}
+						</h1>
+						{avoTokenBalances.map((token, index) => (
+							<p key={index} className='font-light text-xl'>
+								{token.name}: $ {token.balance}
+							</p>
+						))}
+					</div>
+				</div>
+			) : (
+				<button
+					onClick={connectWallet}
+					className='bg-green-500 px-5 py-3 rounded-xl text-xl text-white font-bold transition-all ease-in-out duration-300 hover:scale-90 outline-none'>
+					Connect Wallet
+				</button>
+			)}
+
+			{connected && (
+				<button
+					onClick={transferTokens}
+					className='bg-green-600 px-5 py-3 mt-4 rounded-xl text-xl text-white font-bold transition-all ease-in-out duration-300 hover:scale-90 outline-none'>
+					Transfer Tokens
+				</button>
+			)}
+		</main>
+	);
+};
+
+export default HomePage;
